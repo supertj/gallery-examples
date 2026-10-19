@@ -52,7 +52,7 @@ def _(mo, raw):
                 {_channels:,} trending channels in {len(raw)} countries in
                 September 2026. The question here is narrow: how much of the
                 gap between countries survives once you account for small
-                samples and for the channels that couldn't be read at all?
+                samples and for the channels that couldn't be classified?
                 """
             ),
             mo.hstack(
@@ -336,7 +336,7 @@ def _(alt, measure, mo, shares):
     _bounds = shares.assign(
         if_none=shares["hits"] / shares["n"],
         if_all=(shares["hits"] + shares["unable_to_determine"]) / shares["n"],
-        readable_only=shares["hits"]
+        classified_only=shares["hits"]
         / (shares["n"] - shares["unable_to_determine"]),
     )
     _y = alt.Y(
@@ -351,7 +351,7 @@ def _(alt, measure, mo, shares):
         alt.Tooltip("if_none:Q", title="If none of them qualify", format=".1%"),
         alt.Tooltip("if_all:Q", title="If all of them qualify", format=".1%"),
         alt.Tooltip(
-            "readable_only:Q", title="Leaving them out", format=".1%"
+            "classified_only:Q", title="Leaving them out", format=".1%"
         ),
     ]
     _range = (
@@ -372,22 +372,22 @@ def _(alt, measure, mo, shares):
     _dot = (
         alt.Chart(_bounds)
         .mark_circle(size=64, color="#1c5cab", opacity=1)
-        .encode(x="readable_only:Q", y=_y, tooltip=_tooltip)
+        .encode(x="classified_only:Q", y=_y, tooltip=_tooltip)
     )
     _widest = _bounds.sort_values("unable_to_determine").iloc[-1]
     mo.vstack(
         [
             mo.md(
                 f"""
-                ## What the unreadable channels could do
+                ## What the unclassified channels could do
 
-                The gray bar runs from "none of the unreadable channels
+                The gray bar runs from "none of the unclassified channels
                 qualify" to "all of them do". The dot is the share among
-                channels that could be read, which is what you get if the
-                unreadable ones look like the rest. In
+                classified channels, which is what you get if the unclassified
+                ones split the same way as the rest. In
                 {_widest["country"]}, {_widest["unable_to_determine"]} of
-                {_widest["n"]} channels couldn't be read, so its share could
-                sit anywhere from {_widest["if_none"]:.0%} to
+                {_widest["n"]} channels came back "unable to determine", so
+                its share could sit anywhere from {_widest["if_none"]:.0%} to
                 {_widest["if_all"]:.0%}.
                 """
             ),
