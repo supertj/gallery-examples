@@ -15,13 +15,11 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import math
-
     import altair as alt
     import marimo as mo
     import pandas as pd
 
-    return alt, math, mo, pd
+    return alt, mo, pd
 
 
 @app.cell
@@ -79,21 +77,25 @@ def _(mo, raw):
 
 
 @app.cell
-def _(math):
+def _(pd):
     def wilson_interval(hits, n, z=1.96):
         """95% Wilson score interval for a binomial share.
 
-        Better than the textbook p ± 1.96·SE at n ≈ 60 and near 0 or 1
-        (several countries here have 0 or 1 "likely" channels).
+        Takes pandas Series of counts. Better than the textbook p ± 1.96·SE
+        at n ≈ 60 and near 0 or 1 (several countries here have 0 or 1
+        "likely" channels).
         """
         share = hits / n
         denom = 1 + z**2 / n
         center = (share + z**2 / (2 * n)) / denom
         half = z * ((share * (1 - share) / n + z**2 / (4 * n**2)) ** 0.5) / denom
-        return center - half, center + half
+        # At 0 hits the lower bound is 0 in exact arithmetic, but floating point
+        # can leave it a hair below zero, which then prints as "-0.0%".
+        return (center - half).clip(lower=0), (center + half).clip(upper=1)
 
-    # Sanity check against a known value: 0 of 60 gives an upper bound near 6%.
-    assert math.isclose(wilson_interval(0, 60)[1], 0.0602, abs_tol=0.001)
+    # Sanity check against known values: 0 of 60 gives 0% to about 6%.
+    _low, _high = wilson_interval(pd.Series([0]), pd.Series([60]))
+    assert _low[0] == 0 and abs(_high[0] - 0.0602) < 0.001
     return (wilson_interval,)
 
 
